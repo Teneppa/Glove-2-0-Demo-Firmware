@@ -12,29 +12,40 @@ PressureSensor s;
 void setup() {
   Serial.begin(115200);
 
-  // Calibrate the sensors
-  Serial.println("Press to calibrate min");
-  while(s.readSensor(15) < 600) delay(100);
-  Serial.println("Calibrating...");
-  s.calibrateSensorMin(15);
-  delay(600);
+  // Set the calibration manually
+  uint16_t minCalibrationArray[3] = {401,95,109};
+  uint16_t maxCalibrationArray[3] = {780,823,614};
 
-  Serial.println("Press to calibrate max");
-  while(s.readSensor(15) < 600) delay(100);
-  Serial.println("Calibrating...");
-  s.calibrateSensorMax(15);
+  // Copy the calibration arrays to the PressureSensor object
+  s.setMinCalibrationArray(minCalibrationArray, 3);
+  s.setMaxCalibrationArray(maxCalibrationArray, 3);
   
   beginBNO();
 }
 
 void loop() {
-  Serial.print(s.readSensor(0));
-  Serial.print(",");
-  Serial.print(s.readSensor(1));
-  Serial.print(",");
-  Serial.print(s.readSensor(2));
-  Serial.print(runRot());
 
-  Serial.println();
-  delay(10);
+  // If there's data on serial port
+  if(Serial.available()>0) {
+    // ';' is the termination character
+    String getstr = Serial.readStringUntil(';');
+
+    // Finger data
+    if(getstr == "f") {
+      String temp = "";
+      temp += String(s.readSensor(0));
+      temp += ",";
+      temp += String(s.readSensor(1));
+      temp += ",";
+      temp += String(s.readSensor(2));
+      Serial.println(temp);
+    }
+
+    // Finger data
+    if(getstr == "r") {
+      Serial.print(runRot());
+      Serial.println(";");
+    }
+  }
+  
 }
