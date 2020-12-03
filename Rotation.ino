@@ -22,7 +22,6 @@ String runRot() {
   imu::Quaternion quat = bno.getQuat();
 
   /* Display the quat data */
-  temp += ",";
   temp += String(quat.w());
   temp += ",";
   temp += String(quat.y());
