@@ -3,11 +3,20 @@
    pressure sensors through the HP4067 MUX.
 
    This is coded by Teemu Laurila in 26.11.2020
+
+   Modified on 03.12.2020
+    + --> Added the ability to specify the calibration arrays by hand
+      + setMinCalibrationArray
+      + setMaxCalibrationArray
+    + --> Added a function to retrieve the calibration arrays as a string
+      + getCalibrationData
 */
 
 
 #include "Arduino.h"
 #include "PressureSensor.h"
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 // When the object is created
 PressureSensor::PressureSensor() {
@@ -36,7 +45,9 @@ void PressureSensor::selectMUXLine(uint8_t index) {
 
 }
 
-// Read the sensor value
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+// Read the raw sensor value from the DAC
 uint16_t PressureSensor::readRawSensor(uint8_t index) {
   // Select the line from the MUX
   selectMUXLine(index);
@@ -46,6 +57,8 @@ uint16_t PressureSensor::readRawSensor(uint8_t index) {
 }
 
 // Read the converted sensor value
+//
+// NOTE: If the calibration is incomplete, the function will return convertedSensorMinValue
 uint16_t PressureSensor::readSensor(uint8_t index) {
   
   // Select the line from the MUX
@@ -68,19 +81,22 @@ uint16_t PressureSensor::readSensor(uint8_t index) {
 
     // Map the raw value
     sensorValue = mapFloat(rawValue, minValArray[index], maxValArray[index], convertedSensorMinValue, convertedSensorMaxValue);
-
-  } else {
-    // Raw value from ADC
-    sensorValue = analogRead(0);
+  }else{
+    sensorValue = convertedSensorMinValue;
   }
 
   return sensorValue;
 }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-// If calibration is requested
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+// If calibration is requested
 void PressureSensor::calibrateSensorMin(uint16_t sensorAmount) {
+
+  calibrationArraySize = sensorAmount;
+
+  // Deallocate memory
+  delete minValArray;
 
   // Allocate memory for the minimum value array
   minValArray = new uint16_t[sensorAmount];
@@ -90,6 +106,7 @@ void PressureSensor::calibrateSensorMin(uint16_t sensorAmount) {
     minValArray[i] = readSensor(i);
   }
 
+  // Update the calibration status
   minCalibrated = true;
 
   if(minCalibrated && maxCalibrated) {
@@ -97,7 +114,13 @@ void PressureSensor::calibrateSensorMin(uint16_t sensorAmount) {
   }
 }
 
+// If calibration is requested
 void PressureSensor::calibrateSensorMax(uint16_t sensorAmount) {
+
+  calibrationArraySize = sensorAmount;
+
+  // Deallocate memory
+  delete maxValArray;
 
   // Allocate memory for the maximum value array
   maxValArray = new uint16_t[sensorAmount];
@@ -107,11 +130,84 @@ void PressureSensor::calibrateSensorMax(uint16_t sensorAmount) {
     maxValArray[i] = readSensor(i);
   }
 
+  // Update the calibration status
   maxCalibrated = true;
 
   if(minCalibrated && maxCalibrated) {
     calibrationStatus = true;
   }
+}
+
+/* USAGE:
+
+// This is an example for the usage of setMinCalibrationArray and setMaxCalibrationArray
+PressureSensor s;
+
+// This is the calibration array for the glove. You can get it with s.getCalibrationData()
+// NOTE: getCalibrationData() returns a pretty dirty output, so you need to modify it a bit.
+uint16_t minCalibrationArray[3] = {401,95,109};
+uint16_t maxCalibrationArray[3] = {780,823,614};
+
+// These copy the arrays declared above to the PressureSensor object. SensorAmount should be the
+// same as your array size.
+s.setMinCalibrationArray(minCalibrationArray, 3);
+s.setMaxCalibrationArray(maxCalibrationArray, 3);
+*/
+
+/* If you want to set the min calibration array manually */
+void PressureSensor::setMinCalibrationArray(uint16_t * src, uint16_t sensorAmount) {
+
+  // Save the array size
+  calibrationArraySize = sensorAmount;
+  
+  delete minValArray;
+  minValArray = new uint16_t[sensorAmount];
+  memcpy(minValArray, src, sizeof(src[0])*arraySize);
+
+  minCalibrated = true;
+
+  if(minCalibrated && maxCalibrated) {
+    calibrationStatus = true;
+  }
+}
+
+/* If you want to set the max calibration array manually */
+void PressureSensor::setMaxCalibrationArray(uint16_t * src, uint16_t sensorAmount) {
+  
+  calibrationArraySize = sensorAmount;
+  
+  delete maxValArray;
+  maxValArray = new uint16_t[sensorAmount];
+  memcpy(maxValArray, src, sizeof(src[0])*arraySize);
+
+  maxCalibrated = true;
+
+  if(minCalibrated && maxCalibrated) {
+    calibrationStatus = true;
+  }
+}
+
+String PressureSensor::getCalibrationData() {
+
+  uint16_t sensorAmount = calibrationArraySize;
+  
+  String temp = "min = {";
+
+  // Get the min values
+  for (uint8_t i = 0; i < sensorAmount; i++) {
+    temp += String(minValArray[i]);
+    temp += ",";
+  }
+  temp += "};\n max = {";
+
+  // Get the max values
+  for (uint8_t i = 0; i < sensorAmount; i++) {
+    temp += String(maxValArray[i]);
+    temp += ",";
+  }
+  temp += "};\n";
+
+  return temp;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
