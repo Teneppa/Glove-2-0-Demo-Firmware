@@ -9,6 +9,7 @@ This is a demo firmware for the Glove 2.0
    * The calibration is now done manually so that the
      Unity script doesn't time out. It seems that the lag had something
      to do with the timeouts, and now it's a lot faster.
+     
 9.12.2020
    * Fix setCalibrationArray.
    * Add nSensor -variable to store the pressure sensor count
