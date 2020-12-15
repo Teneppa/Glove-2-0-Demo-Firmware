@@ -27,7 +27,7 @@ class PressureSensor{
 
     float mapFloat(float x, float in_min, float in_max, float out_min, float out_max);
   
-    uint8_t selectPinArray[4] = {4, 7, 8, 10}; // {S0, S1, S2, S3}
+    uint8_t selectPinArray[4] = {4, 7, 8, 15}; // {S0, S1, S2, S3}
     uint8_t enablePin = 2;  // EN
     uint8_t arraySize = 0;
 
