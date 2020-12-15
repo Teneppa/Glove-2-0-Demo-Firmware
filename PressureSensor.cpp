@@ -103,7 +103,7 @@ void PressureSensor::calibrateSensorMin(uint16_t sensorAmount) {
 
   // Get the min values
   for (uint8_t i = 0; i < sensorAmount; i++) {
-    minValArray[i] = readSensor(i);
+    minValArray[i] = readRawSensor(i);
   }
 
   // Update the calibration status
@@ -127,7 +127,7 @@ void PressureSensor::calibrateSensorMax(uint16_t sensorAmount) {
 
   // Get the max values
   for (uint8_t i = 0; i < sensorAmount; i++) {
-    maxValArray[i] = readSensor(i);
+    maxValArray[i] = readRawSensor(i);
   }
 
   // Update the calibration status
@@ -159,10 +159,12 @@ void PressureSensor::setMinCalibrationArray(uint16_t * src, uint16_t sensorAmoun
 
   // Save the array size
   calibrationArraySize = sensorAmount;
+
+  
   
   delete minValArray;
   minValArray = new uint16_t[sensorAmount];
-  memcpy(minValArray, src, sizeof(src[0])*arraySize);
+  memcpy(minValArray, src, sizeof(src[0])*sensorAmount);
 
   minCalibrated = true;
 
@@ -175,10 +177,13 @@ void PressureSensor::setMinCalibrationArray(uint16_t * src, uint16_t sensorAmoun
 void PressureSensor::setMaxCalibrationArray(uint16_t * src, uint16_t sensorAmount) {
   
   calibrationArraySize = sensorAmount;
-  
+
+  // Deallocate memory
   delete maxValArray;
+
+  // Allocate memory for the maximum value array
   maxValArray = new uint16_t[sensorAmount];
-  memcpy(maxValArray, src, sizeof(src[0])*arraySize);
+  memcpy(maxValArray, src, sizeof(src[0])*sensorAmount);
 
   maxCalibrated = true;
 
